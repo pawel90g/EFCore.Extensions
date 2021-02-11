@@ -1,7 +1,7 @@
-﻿using Microsoft.EntityFrameworkCore;
+﻿using Microsoft.Data.SqlClient;
+using Microsoft.EntityFrameworkCore;
 using System.Collections.Generic;
 using System.Data;
-using System.Data.SqlClient;
 using System.Linq;
 using System.Threading.Tasks;
 
@@ -12,17 +12,19 @@ namespace Garbacik.NetCore.EFCore.Extensions
         public static async Task BulkInsertAsync<T>(this DbContext context, IEnumerable<T> collection)
         {
             var dataTable = MapToDataTable(context, collection);
-            using (var connection = new SqlConnection(context.Database.GetDbConnection().ConnectionString))
+
+            var connection = context.Database.GetDbConnection();
+            connection.Open();
+
+            using var bulkCopy = new SqlBulkCopy(connection as SqlConnection)
             {
-                connection.Open();
-                using (var bulkCopy = new SqlBulkCopy(connection))
-                {
-                    bulkCopy.DestinationTableName = context.Model.FindEntityType(typeof(T)).GetTableName();
-                    bulkCopy.ColumnMappings.Clear();
-                    await bulkCopy.WriteToServerAsync(dataTable);
-                }
-                connection.Close();
-            }
+                DestinationTableName = context.Model.FindEntityType(typeof(T)).GetTableName()
+            };
+            bulkCopy.ColumnMappings.Clear();
+            await bulkCopy.WriteToServerAsync(dataTable);
+            bulkCopy.Close();
+
+            connection.Close();
         }
         private static DataTable MapToDataTable<T>(DbContext context, IEnumerable<T> collection)
         {
@@ -54,7 +56,7 @@ namespace Garbacik.NetCore.EFCore.Extensions
         {
             var row = dataTable.NewRow();
 
-            entity.GetType().GetProperties().ToList().ForEach(p =>
+            typeof(T).GetProperties().ToList().ForEach(p =>
             {
                 row[p.Name] = p.GetValue(entity);
             });
