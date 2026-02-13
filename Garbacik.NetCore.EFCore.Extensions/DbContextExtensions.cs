@@ -37,13 +37,14 @@ namespace Garbacik.NetCore.EFCore.Extensions
                 .Select(x => new DataColumn(x.Name, x.ClrType))
                 .ToArray();
 
-            dataTable.Columns.AddRange(primaryKeys.ToArray());
+            dataTable.Columns.AddRange([.. primaryKeys]);
 
             typeof(T).GetProperties().ToList().ForEach(p =>
             {
                 if (!dataTable.Columns.Contains(p.Name))
                     dataTable.Columns.Add(p.Name, p.PropertyType);
             });
+
             dataTable.PrimaryKey = primaryKeys;
 
             foreach (var item in collection)
@@ -58,7 +59,11 @@ namespace Garbacik.NetCore.EFCore.Extensions
 
             typeof(T).GetProperties().ToList().ForEach(p =>
             {
-                row[p.Name] = p.GetValue(entity);
+                var val = p.GetValue(entity);
+                if (val != null)
+                {
+                    row[p.Name] = p.GetValue(entity);
+                }
             });
 
             return row;
