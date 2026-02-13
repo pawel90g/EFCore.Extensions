@@ -1,5 +1,6 @@
 ﻿using Microsoft.Data.SqlClient;
 using Microsoft.EntityFrameworkCore;
+using System;
 using System.Collections.Generic;
 using System.Data;
 using System.Linq;
@@ -42,7 +43,7 @@ namespace Garbacik.NetCore.EFCore.Extensions
             typeof(T).GetProperties().ToList().ForEach(p =>
             {
                 if (!dataTable.Columns.Contains(p.Name))
-                    dataTable.Columns.Add(p.Name, p.PropertyType);
+                    dataTable.Columns.Add(p.Name, Nullable.GetUnderlyingType(p.PropertyType) ?? p.PropertyType);
             });
 
             dataTable.PrimaryKey = primaryKeys;
